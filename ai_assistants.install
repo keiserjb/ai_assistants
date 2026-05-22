@@ -1,0 +1,51 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function ai_assistants_install() {
+  if (!module_load_install('ai_upgrade')) { return []; }
+  ai_upgrade_module_install('ai_assistant');
+}
+
+
+/**
+ * Re-migrate openai_assistant.settings → ai_assistants.settings stripping openai/ prefix.
+ */
+function ai_assistants_update_1000() {
+  if (!module_load_install('ai_upgrade')) { return []; }
+  if (function_exists('_ai_transform_assistant_config')) {
+    _ai_migrate_config_object('openai_assistant.settings', 'ai_assistants.settings', '_ai_transform_assistant_config', TRUE);
+  }
+  return t('Re-migrated assistant config: stripped openai/ provider prefix from model fields.');
+}
+
+/**
+ * Migrate assistant definitions into one config object per assistant.
+ */
+function ai_assistants_update_1001() {
+  module_load_include('inc', 'ai_assistants', 'includes/ai_assistants.config');
+
+  $legacy = ai_assistants_get_legacy_assistants();
+  if (empty($legacy)) {
+    return t('Assistant config already uses per-assistant config objects.');
+  }
+
+  foreach ($legacy as $assistant_id => $assistant) {
+    if (!is_array($assistant) || $assistant_id === '') {
+      continue;
+    }
+    ai_assistants_save_assistant($assistant_id, $assistant);
+  }
+
+  config_clear('ai_assistants.settings', 'assistants');
+  return t('Migrated assistant definitions into per-assistant config objects.');
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function ai_assistants_requirements($phase) {
+  if (!module_load_install('ai_upgrade')) { return []; }
+  return ai_upgrade_module_requirements($phase, 'ai_assistant');
+}

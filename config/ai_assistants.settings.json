@@ -1,0 +1,7 @@
+{
+    "_config_name": "ai_assistants.settings",
+    "block_config": {
+        "custom_title": "Backdrop Assistant",
+        "assistant_id": "backdrop_agent_assistant"
+    }
+}

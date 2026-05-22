@@ -1,0 +1,7 @@
+name = AI Assistants
+description = AI-powered assistant chat and interaction module.
+backdrop = 1.x
+type = module
+package = AI
+dependencies[] = ai_agents
+configure = admin/config/ai/ai-assistants

@@ -1,0 +1,117 @@
+<?php
+
+/**
+ * @file
+ * Assistant API layer for AI-backed chat flows.
+ */
+
+module_load_include('inc', 'ai_assistants', 'includes/ai_assistants.config');
+module_load_include('inc', 'ai_assistants', 'includes/ai_assistants.orchestrator');
+module_load_include('inc', 'ai_assistants', 'includes/ai_assistants.routing');
+module_load_include('inc', 'ai_assistants', 'includes/ai_assistants.runtime');
+module_load_include('inc', 'ai_assistants', 'includes/ai_assistants.thread');
+module_load_include('inc', 'ai_assistants', 'includes/ai_assistants.admin');
+
+/**
+ * Implements hook_config_info().
+ */
+function ai_assistants_config_info() {
+  return [
+    'ai_assistants.settings' => [
+      'label' => t('AI Assistant settings'),
+      'group' => t('AI'),
+    ],
+  ];
+}
+
+/**
+ * Implements hook_menu().
+ */
+function ai_assistants_menu() {
+  $items = [];
+
+  $items['admin/config/ai/ai-assistants'] = [
+    'title' => 'AI Assistants',
+    'description' => 'Manage assistant wrappers around AI agents.',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => ['ai_assistants_admin_list_form'],
+    'access arguments' => ['administer site configuration'],
+    'type' => MENU_NORMAL_ITEM,
+  ];
+
+  $items['admin/config/ai/ai-assistants/add'] = [
+    'title' => 'Add AI assistant',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => ['ai_assistants_admin_edit_form'],
+    'access arguments' => ['administer site configuration'],
+    'type' => MENU_LOCAL_ACTION,
+  ];
+
+  $items['admin/config/ai/ai-assistants/%/edit'] = [
+    'title' => 'Edit AI assistant',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => ['ai_assistants_admin_edit_form', 4],
+    'access arguments' => ['administer site configuration'],
+    'type' => MENU_CALLBACK,
+  ];
+
+  $items['admin/config/ai/ai-assistants/%/delete'] = [
+    'title' => 'Delete AI assistant',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => ['ai_assistants_admin_delete_form', 4],
+    'access arguments' => ['administer site configuration'],
+    'type' => MENU_CALLBACK,
+  ];
+
+  return $items;
+}
+
+/**
+ * Implements hook_schema().
+ */
+function ai_assistants_schema() {
+  return [
+    'ai_assistants_thread' => [
+      'description' => 'Stored assistant threads.',
+      'fields' => [
+        'thread_id' => [
+          'type' => 'varchar',
+          'length' => 64,
+          'not null' => TRUE,
+          'default' => '',
+        ],
+        'assistant_id' => [
+          'type' => 'varchar',
+          'length' => 128,
+          'not null' => TRUE,
+          'default' => '',
+        ],
+        'uid' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'messages' => [
+          'type' => 'text',
+          'size' => 'big',
+          'not null' => TRUE,
+        ],
+        'created' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'updated' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+      ],
+      'primary key' => ['thread_id'],
+      'indexes' => [
+        'assistant_id' => ['assistant_id'],
+        'uid' => ['uid'],
+      ],
+    ],
+  ];
+}
