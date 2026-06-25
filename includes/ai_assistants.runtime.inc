@@ -160,6 +160,17 @@ function ai_assistants_pending_tools_summary(array $result, $fallback = '') {
   if (!empty($result['pending_tools']) && function_exists('ai_agents_pending_tools_summary')) {
     return ai_agents_pending_tools_summary($result['pending_tools'], $fallback);
   }
+  if (!empty($result['pending_tools']) && is_array($result['pending_tools'])) {
+    $names = [];
+    foreach ($result['pending_tools'] as $tool) {
+      if (!empty($tool['name'])) {
+        $names[] = (string) $tool['name'];
+      }
+    }
+    if (!empty($names)) {
+      return implode(', ', $names);
+    }
+  }
   if (!empty($result['pending']['name'])) {
     return (string) $result['pending']['name'];
   }
@@ -574,6 +585,7 @@ function ai_assistants_send($assistant_id, $message, array $options = []) {
       'status' => 'error',
       'token' => NULL,
       'pending' => NULL,
+      'pending_tools' => [],
       'thread_id' => '',
       'loops' => 0,
       'tool_calls' => [],
@@ -589,6 +601,7 @@ function ai_assistants_send($assistant_id, $message, array $options = []) {
       'status' => 'error',
       'token' => NULL,
       'pending' => NULL,
+      'pending_tools' => [],
       'thread_id' => '',
       'loops' => 0,
       'tool_calls' => [],
@@ -619,6 +632,7 @@ function ai_assistants_send($assistant_id, $message, array $options = []) {
     'status' => 'error',
     'token' => NULL,
     'pending' => NULL,
+    'pending_tools' => [],
     'thread_id' => $thread_id,
     'loops' => 0,
     'tool_calls' => [],
@@ -756,6 +770,7 @@ function ai_assistants_resume($assistant_id, $token, $approved = TRUE, array $op
       'status' => 'error',
       'token' => NULL,
       'pending' => NULL,
+      'pending_tools' => [],
       'thread_id' => '',
       'loops' => 0,
       'tool_calls' => [],
@@ -771,6 +786,7 @@ function ai_assistants_resume($assistant_id, $token, $approved = TRUE, array $op
       'status' => 'error',
       'token' => NULL,
       'pending' => NULL,
+      'pending_tools' => [],
       'thread_id' => '',
       'loops' => 0,
       'tool_calls' => [],
@@ -791,6 +807,7 @@ function ai_assistants_resume($assistant_id, $token, $approved = TRUE, array $op
       'status' => 'error',
       'token' => NULL,
       'pending' => NULL,
+      'pending_tools' => [],
       'thread_id' => !empty($options['thread_id']) ? (string) $options['thread_id'] : '',
       'loops' => 0,
       'tool_calls' => [],
@@ -805,6 +822,7 @@ function ai_assistants_resume($assistant_id, $token, $approved = TRUE, array $op
       'status' => 'error',
       'token' => NULL,
       'pending' => NULL,
+      'pending_tools' => [],
       'thread_id' => !empty($options['thread_id']) ? (string) $options['thread_id'] : '',
       'loops' => 0,
       'tool_calls' => [],

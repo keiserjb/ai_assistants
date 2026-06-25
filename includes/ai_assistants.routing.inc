@@ -33,15 +33,21 @@ function ai_assistants_plan_agent_execution(array $assistant, $message, array $t
   $planned = ai_assistants_model_route_plan($assistant, $message, $thread_messages);
 
   if (is_array($planned)) {
-    $selected = array_values(array_intersect($planned['agent_ids'], $configured));
+    $raw_ids = !empty($planned['agent_ids']) && is_array($planned['agent_ids']) ? $planned['agent_ids'] : [];
+    $selected = array_values(array_intersect($raw_ids, $configured));
     if (empty($selected)) {
-      // The router answered with an empty list: a deliberate "no agent
-      // matches" verdict. Honor it instead of fanning out to every agent.
-      return [
-        'strategy' => 'choose_one',
-        'agent_ids' => [],
-        'reason' => !empty($planned['reason']) ? (string) $planned['reason'] : 'router-no-match',
-      ];
+      if (empty($raw_ids)) {
+        // The router deliberately returned an empty list: a "no agent matches"
+        // verdict. Honor it instead of fanning out to every agent.
+        return [
+          'strategy' => 'choose_one',
+          'agent_ids' => [],
+          'reason' => !empty($planned['reason']) ? (string) $planned['reason'] : 'router-no-match',
+        ];
+      }
+      // The router returned IDs but all were filtered out as unconfigured.
+      // Fall back to all configured agents rather than returning an empty plan.
+      $selected = $configured;
     }
   }
   else {
