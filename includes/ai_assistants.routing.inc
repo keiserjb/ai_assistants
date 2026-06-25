@@ -32,12 +32,22 @@ function ai_assistants_plan_agent_execution(array $assistant, $message, array $t
 
   $planned = ai_assistants_model_route_plan($assistant, $message, $thread_messages);
 
-  if (!empty($planned['agent_ids']) && is_array($planned['agent_ids'])) {
+  if (is_array($planned)) {
     $selected = array_values(array_intersect($planned['agent_ids'], $configured));
+    if (empty($selected)) {
+      // The router answered with an empty list: a deliberate "no agent
+      // matches" verdict. Honor it instead of fanning out to every agent.
+      return [
+        'strategy' => 'choose_one',
+        'agent_ids' => [],
+        'reason' => !empty($planned['reason']) ? (string) $planned['reason'] : 'router-no-match',
+      ];
+    }
   }
   else {
-    // LLM router unavailable or returned nothing: send to all configured
-    // agents and let each decide whether the message is for it.
+    // LLM router unavailable (no model, call failed, or unparseable output):
+    // send to all configured agents and let each decide whether the message
+    // is for it.
     $selected = $configured;
   }
 
@@ -104,19 +114,19 @@ function ai_assistants_default_router_prompt() {
     . "\n\nReturn JSON only with this shape:"
     . "\n{\"strategy\":\"choose_one|ask_many|workflow\",\"agent_ids\":[\"agent_id\"],\"reason\":\"short reason\"}"
     . "\n\nDecision algorithm — apply in order:"
-    . "\n1. For each agent in AVAILABLE_AGENTS, scan its tools for one that DIRECTLY performs an action the user asked for. Action tools have names beginning with create_, modify_, update_, add_, delete_, remove_, set_, save_, write_, generate_, import_, export_, run_, execute_, enable_, disable_, install_."
-    . "\n2. Discard agents whose only matching tools are read-only (get_, list_, find_, search_, fetch_, view_). Those agents will describe the task in prose but not perform it."
-    . "\n3. From the remaining candidates, pick the FEWEST agents that together cover the request:"
+    . "\n1. Identify the request's domain (what part of the site it concerns) and intent: an ACTION (create or change something) or a QUESTION (read, list, explain, or advise)."
+    . "\n2. Match the domain against each agent's description and the usage notes below. Each tool in an agent's tool list carries an \"op\" value: \"write\"/\"trigger\" tools perform changes, \"read\" tools only look things up."
+    . "\n3. For ACTION requests, prefer agents whose tools include op \"write\" in the matching domain. For QUESTION or advisory requests, an agent whose tools are all op \"read\" is a valid choice — advisory agents answer with instructions instead of performing changes."
+    . "\n4. From the candidates, pick the FEWEST agents that together cover the request:"
     . "\n   - 1 agent → strategy choose_one."
     . "\n   - 2+ agents whose declared produces/consumes keys form a chain (one produces a key the next consumes), or whose depends_on metadata wires them together → strategy workflow. Return the agent_ids in dependency order."
     . "\n   - 2+ candidates with no declared chain → still return the single best fit using choose_one. Do NOT hedge with ask_many."
-    . "\n4. ask_many is reserved for the rare case where the user explicitly requested multiple agents to weigh in (e.g. \"have every agent respond\")."
-    . "\n5. If no candidate has a matching action tool, return an empty agent_ids array."
+    . "\n5. ask_many is reserved for the rare case where the user explicitly requested multiple agents to weigh in (e.g. \"have every agent respond\")."
+    . "\n6. If no agent's domain matches the request, return an empty agent_ids array."
     . "\n\nHard rules:"
     . "\n- Use only agent ids that appear in AVAILABLE_AGENTS."
-    . "\n- Do not include an agent that would only restate or describe the task. If an agent\'s tools cannot perform the request, exclude it."
+    . "\n- Never select an agent whose domain does not match the request just to return something — an empty agent_ids array is the correct answer for unmatched requests."
     . "\n- Prefer choose_one over ask_many whenever you are unsure."
-    . "\n- Read each agent\'s description, system_prompt_summary, and tool list. Match the request to the agent that owns the relevant domain."
     . "\n\nUsage notes for the configured agents:"
     . "\n[usage_instructions]"
     . "\n\nFew-shot examples contributed by the configured agents:"
@@ -220,7 +230,10 @@ function ai_assistants_model_route_plan(array $assistant, $message, array $threa
   ];
 
   try {
-    $answer = ai_chat($model, $router_messages, 0.0, 512, FALSE, [
+    // 2048 tokens: reasoning models spend output budget on hidden reasoning
+    // before emitting the JSON verdict — 512 was small enough that the
+    // verdict could be truncated or empty, which silently disabled routing.
+    $answer = ai_chat($model, $router_messages, 0.0, 2048, FALSE, [
       'operation' => 'ai_assistants_router',
     ]);
   }

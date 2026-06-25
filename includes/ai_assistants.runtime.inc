@@ -146,10 +146,24 @@ function ai_assistants_run_backing_agent($assistant_id, array $assistant, $agent
     'status' => !empty($result['status']) ? (string) $result['status'] : (empty($result['error']) ? 'ok' : 'error'),
     'token' => isset($result['token']) ? (string) $result['token'] : NULL,
     'pending' => isset($result['pending_tool']) ? $result['pending_tool'] : NULL,
+    'pending_tools' => isset($result['pending_tools']) && is_array($result['pending_tools']) ? $result['pending_tools'] : [],
     'loops' => isset($result['loops']) ? (int) $result['loops'] : 0,
     'tool_calls' => isset($result['tool_calls']) && is_array($result['tool_calls']) ? $result['tool_calls'] : [],
     'error' => isset($result['error']) ? $result['error'] : NULL,
   ];
+}
+
+/**
+ * Returns a display summary of all tools awaiting approval in one result.
+ */
+function ai_assistants_pending_tools_summary(array $result, $fallback = '') {
+  if (!empty($result['pending_tools']) && function_exists('ai_agents_pending_tools_summary')) {
+    return ai_agents_pending_tools_summary($result['pending_tools'], $fallback);
+  }
+  if (!empty($result['pending']['name'])) {
+    return (string) $result['pending']['name'];
+  }
+  return (string) $fallback;
 }
 
 /**
@@ -283,6 +297,7 @@ function ai_assistants_execute_agent_plan($assistant_id, array $assistant, array
     $response['status'] = $result['status'];
     $response['token'] = $result['token'];
     $response['pending'] = $result['pending'];
+    $response['pending_tools'] = $result['pending_tools'];
     $response['loops'] = $result['loops'];
     $response['tool_calls'] = $result['tool_calls'];
     $response['error'] = $result['error'];
@@ -308,6 +323,7 @@ function ai_assistants_execute_agent_plan($assistant_id, array $assistant, array
       $response['status'] = 'needs_approval';
       $response['token'] = $result['token'];
       $response['pending'] = $result['pending'];
+      $response['pending_tools'] = $result['pending_tools'];
       $response['error'] = NULL;
       $response['tool_calls'] = $result['tool_calls'];
       $response['loops'] = $result['loops'];
@@ -384,6 +400,7 @@ function ai_assistants_execute_workflow_plan($assistant_id, array $assistant, $m
       $response['status'] = 'needs_approval';
       $response['token'] = $result['token'];
       $response['pending'] = $result['pending'];
+      $response['pending_tools'] = $result['pending_tools'];
       $response['loops'] = ai_assistants_sum_result_loops($results);
       $response['tool_calls'] = ai_assistants_collect_result_tool_calls($results);
       $response['agent_id'] = $agent_id;
@@ -677,6 +694,7 @@ function ai_assistants_send($assistant_id, $message, array $options = []) {
       $response['status'] = $result['status'];
       $response['token'] = $result['token'];
       $response['pending'] = $result['pending'];
+      $response['pending_tools'] = $result['pending_tools'];
       $response['loops'] = $result['loops'];
       $response['tool_calls'] = $result['tool_calls'];
       $response['error'] = $result['error'];
@@ -810,6 +828,7 @@ function ai_assistants_resume($assistant_id, $token, $approved = TRUE, array $op
     'status' => !empty($result['status']) ? (string) $result['status'] : (empty($result['error']) ? 'ok' : 'error'),
     'token' => isset($result['token']) ? (string) $result['token'] : NULL,
     'pending' => isset($result['pending_tool']) ? $result['pending_tool'] : NULL,
+    'pending_tools' => isset($result['pending_tools']) && is_array($result['pending_tools']) ? $result['pending_tools'] : [],
     'thread_id' => !empty($options['thread_id']) ? (string) $options['thread_id'] : '',
     'loops' => isset($result['loops']) ? (int) $result['loops'] : 0,
     'tool_calls' => isset($result['tool_calls']) && is_array($result['tool_calls']) ? $result['tool_calls'] : [],
@@ -963,6 +982,7 @@ function ai_assistants_continue_after_approval($assistant_id, array $assistant, 
       $combined['status'] = 'needs_approval';
       $combined['token'] = $result['token'];
       $combined['pending'] = $result['pending'];
+      $combined['pending_tools'] = $result['pending_tools'];
       $combined['pending_agent_id'] = $agent_id;
       $combined['agent_id'] = $agent_id;
       $combined['agent_label'] = $result['agent_label'];

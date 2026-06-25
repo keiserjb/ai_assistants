@@ -67,6 +67,29 @@ function ai_assistants_menu() {
 }
 
 /**
+ * Implements hook_cron().
+ *
+ * Purges expired database threads per each assistant's configured TTL.
+ * Without this the thread_ttl setting was advisory only and rows
+ * accumulated forever.
+ */
+function ai_assistants_cron() {
+  foreach (ai_assistants_get_assistants() as $assistant_id => $assistant) {
+    if (($assistant['thread_storage'] ?? 'session') !== 'database') {
+      continue;
+    }
+    $ttl = !empty($assistant['thread_ttl']) ? max(0, (int) $assistant['thread_ttl']) : 0;
+    if ($ttl <= 0) {
+      continue;
+    }
+    db_delete('ai_assistants_thread')
+      ->condition('assistant_id', $assistant_id)
+      ->condition('updated', REQUEST_TIME - $ttl, '<')
+      ->execute();
+  }
+}
+
+/**
  * Implements hook_schema().
  */
 function ai_assistants_schema() {

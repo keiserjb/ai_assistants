@@ -179,11 +179,35 @@ function ai_assistants_get_thread($thread_id) {
     return [];
   }
 
+  // A stored thread owned by an authenticated user is only readable by that
+  // user. Callers must not be able to read someone else's transcript by
+  // supplying a foreign thread id.
+  if (!ai_assistants_thread_owner_matches($row)) {
+    return [];
+  }
+
+  // Enforce the assistant's configured thread TTL (0 = never expire).
+  $ttl = ai_assistants_thread_ttl(!empty($row['assistant_id']) ? (string) $row['assistant_id'] : '');
+  if ($ttl > 0 && !empty($row['updated']) && ((int) $row['updated'] + $ttl) < REQUEST_TIME) {
+    return [];
+  }
+
   $row['messages'] = !empty($row['messages']) ? json_decode($row['messages'], TRUE) : [];
   if (!is_array($row['messages'])) {
     $row['messages'] = [];
   }
   return $row;
+}
+
+/**
+ * Returns the configured thread TTL in seconds for one assistant.
+ */
+function ai_assistants_thread_ttl($assistant_id) {
+  if ($assistant_id === '') {
+    return 0;
+  }
+  $assistant = ai_assistants_load($assistant_id);
+  return !empty($assistant['thread_ttl']) ? max(0, (int) $assistant['thread_ttl']) : 0;
 }
 
 /**
@@ -200,6 +224,11 @@ function ai_assistants_clear_thread($thread_id) {
   unset($_SESSION['ai_assistants_threads'][$thread_id]);
 
   if (substr($thread_id, 0, 8) === 'session:') {
+    return;
+  }
+
+  $existing = db_query("SELECT uid FROM {ai_assistants_thread} WHERE thread_id = :tid", [':tid' => $thread_id])->fetchAssoc();
+  if (!empty($existing) && !ai_assistants_thread_owner_matches($existing)) {
     return;
   }
 
@@ -236,6 +265,17 @@ function ai_assistants_save_thread($thread_id, $assistant_id, array $messages, a
     return;
   }
 
+  // Never overwrite a thread owned by a different authenticated user.
+  $existing = db_query("SELECT uid FROM {ai_assistants_thread} WHERE thread_id = :tid", [':tid' => $thread_id])->fetchAssoc();
+  if (!empty($existing) && !ai_assistants_thread_owner_matches($existing)) {
+    watchdog('ai_assistants', 'Refused to write thread @tid owned by uid @owner from uid @actor.', [
+      '@tid' => $thread_id,
+      '@owner' => (int) $existing['uid'],
+      '@actor' => $record['uid'],
+    ], WATCHDOG_WARNING);
+    return;
+  }
+
   db_merge('ai_assistants_thread')
     ->key(['thread_id' => $thread_id])
     ->fields([
@@ -246,6 +286,22 @@ function ai_assistants_save_thread($thread_id, $assistant_id, array $messages, a
       'updated' => REQUEST_TIME,
     ])
     ->execute();
+}
+
+/**
+ * Returns TRUE when the current user may access a stored thread row.
+ *
+ * Threads owned by an authenticated user (uid > 0) are private to that user.
+ * Anonymous-owned threads (uid 0) are gated only by the unguessable random
+ * thread id, since anonymous users have no other stable identity.
+ */
+function ai_assistants_thread_owner_matches(array $row) {
+  $owner = isset($row['uid']) ? (int) $row['uid'] : 0;
+  if ($owner === 0) {
+    return TRUE;
+  }
+  $current = isset($GLOBALS['user']->uid) ? (int) $GLOBALS['user']->uid : 0;
+  return $owner === $current;
 }
 
 /**
