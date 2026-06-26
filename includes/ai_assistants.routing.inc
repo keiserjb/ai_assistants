@@ -255,7 +255,17 @@ function ai_assistants_model_route_plan(array $assistant, $message, array $threa
     return NULL;
   }
 
-  $raw_agent_ids = array_values(array_map('strval', $data['agent_ids']));
+  $raw_agent_ids = [];
+  foreach ($data['agent_ids'] as $entry) {
+    if (!is_scalar($entry)) {
+      continue;
+    }
+    $entry = trim((string) $entry);
+    if ($entry === '') {
+      continue;
+    }
+    $raw_agent_ids[] = $entry;
+  }
 
   $allowed = array_fill_keys(array_keys($available), TRUE);
   $selected = [];
