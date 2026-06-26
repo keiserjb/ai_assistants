@@ -267,12 +267,20 @@ function ai_assistants_save_thread($thread_id, $assistant_id, array $messages, a
   }
 
   // Never overwrite a thread owned by a different authenticated user.
-  $existing = db_query("SELECT uid FROM {ai_assistants_thread} WHERE thread_id = :tid", [':tid' => $thread_id])->fetchAssoc();
+  $existing = db_query("SELECT uid, assistant_id FROM {ai_assistants_thread} WHERE thread_id = :tid", [':tid' => $thread_id])->fetchAssoc();
   if (!empty($existing) && !ai_assistants_thread_owner_matches($existing)) {
     watchdog('ai_assistants', 'Refused to write thread @tid owned by uid @owner from uid @actor.', [
       '@tid' => $thread_id,
       '@owner' => (int) $existing['uid'],
       '@actor' => $record['uid'],
+    ], WATCHDOG_WARNING);
+    return;
+  }
+  if (!empty($existing) && (string) $existing['assistant_id'] !== (string) $assistant_id) {
+    watchdog('ai_assistants', 'Refused to reassign thread @tid from assistant @existing to @requested.', [
+      '@tid' => $thread_id,
+      '@existing' => (string) $existing['assistant_id'],
+      '@requested' => (string) $assistant_id,
     ], WATCHDOG_WARNING);
     return;
   }

@@ -33,7 +33,9 @@ function ai_assistants_plan_agent_execution(array $assistant, $message, array $t
   $planned = ai_assistants_model_route_plan($assistant, $message, $thread_messages);
 
   if (is_array($planned)) {
-    $raw_ids = !empty($planned['agent_ids']) && is_array($planned['agent_ids']) ? $planned['agent_ids'] : [];
+    $raw_ids = isset($planned['raw_agent_ids']) && is_array($planned['raw_agent_ids'])
+      ? $planned['raw_agent_ids']
+      : (!empty($planned['agent_ids']) && is_array($planned['agent_ids']) ? $planned['agent_ids'] : []);
     $selected = array_values(array_intersect($raw_ids, $configured));
     if (empty($selected)) {
       if (empty($raw_ids)) {
@@ -121,11 +123,12 @@ function ai_assistants_default_router_prompt() {
     . "\n{\"strategy\":\"choose_one|ask_many|workflow\",\"agent_ids\":[\"agent_id\"],\"reason\":\"short reason\"}"
     . "\n\nDecision algorithm — apply in order:"
     . "\n1. Identify the request's domain (what part of the site it concerns) and intent: an ACTION (create or change something) or a QUESTION (read, list, explain, or advise)."
-    . "\n2. Match the domain against each agent's description and the usage notes below. Each tool in an agent's tool list carries an \"op\" value: \"write\"/\"trigger\" tools perform changes, \"read\" tools only look things up."
-    . "\n3. For ACTION requests, prefer agents whose tools include op \"write\" in the matching domain. For QUESTION or advisory requests, an agent whose tools are all op \"read\" is a valid choice — advisory agents answer with instructions instead of performing changes."
     . "\n4. From the candidates, pick the FEWEST agents that together cover the request:"
     . "\n   - 1 agent → strategy choose_one."
     . "\n   - 2+ agents whose declared produces/consumes keys form a chain (one produces a key the next consumes), or whose depends_on metadata wires them together → strategy workflow. Return the agent_ids in dependency order."
+    . "\n   - 2+ candidates with no declared chain but each covers a distinct required part of the request → strategy ask_many."
+    . "\n   - 2+ overlapping candidates for the same required part → return the single best fit using choose_one. Do NOT hedge with ask_many."
+    . "\n5. ask_many is reserved for independent required parts or the rare case where the user explicitly requested multiple agents to weigh in (e.g. \"have every agent respond\")."
     . "\n   - 2+ candidates with no declared chain → still return the single best fit using choose_one. Do NOT hedge with ask_many."
     . "\n5. ask_many is reserved for the rare case where the user explicitly requested multiple agents to weigh in (e.g. \"have every agent respond\")."
     . "\n6. If no agent's domain matches the request, return an empty agent_ids array."
