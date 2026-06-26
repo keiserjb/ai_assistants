@@ -36,7 +36,7 @@ function ai_assistants_plan_agent_execution(array $assistant, $message, array $t
     $raw_ids = isset($planned['raw_agent_ids']) && is_array($planned['raw_agent_ids'])
       ? $planned['raw_agent_ids']
       : (!empty($planned['agent_ids']) && is_array($planned['agent_ids']) ? $planned['agent_ids'] : []);
-    $selected = array_values(array_intersect($raw_ids, $configured));
+    $selected = array_values(array_unique(array_intersect($raw_ids, $configured)));
     if (empty($selected)) {
       if (empty($raw_ids)) {
         // The router deliberately returned an empty list: a "no agent matches"

@@ -148,9 +148,9 @@ function ai_assistants_run_backing_agent($assistant_id, array $assistant, $agent
     'pending' => isset($result['pending_tool'])
       ? $result['pending_tool']
       : (isset($result['pending_tools']) && is_array($result['pending_tools']) && !empty($result['pending_tools']) ? reset($result['pending_tools']) : NULL),
-    'pending_tools' => (isset($result['pending_tools']) && is_array($result['pending_tools']) && !empty($result['pending_tools']))
+    'pending_tools' => array_values((isset($result['pending_tools']) && is_array($result['pending_tools']) && !empty($result['pending_tools']))
       ? $result['pending_tools']
-      : (isset($result['pending_tool']) && is_array($result['pending_tool']) ? [$result['pending_tool']] : []),
+      : (isset($result['pending_tool']) && is_array($result['pending_tool']) ? [$result['pending_tool']] : [])),
     'loops' => isset($result['loops']) ? (int) $result['loops'] : 0,
     'tool_calls' => isset($result['tool_calls']) && is_array($result['tool_calls']) ? $result['tool_calls'] : [],
     'error' => isset($result['error']) ? $result['error'] : NULL,
@@ -869,9 +869,9 @@ function ai_assistants_resume($assistant_id, $token, $approved = TRUE, array $op
     'pending' => isset($result['pending_tool'])
       ? $result['pending_tool']
       : (isset($result['pending_tools']) && is_array($result['pending_tools']) && !empty($result['pending_tools']) ? reset($result['pending_tools']) : NULL),
-    'pending_tools' => (isset($result['pending_tools']) && is_array($result['pending_tools']) && !empty($result['pending_tools']))
+    'pending_tools' => array_values((isset($result['pending_tools']) && is_array($result['pending_tools']) && !empty($result['pending_tools']))
       ? $result['pending_tools']
-      : (isset($result['pending_tool']) && is_array($result['pending_tool']) ? [$result['pending_tool']] : []),
+      : (isset($result['pending_tool']) && is_array($result['pending_tool']) ? [$result['pending_tool']] : [])),
     'thread_id' => !empty($options['thread_id']) ? (string) $options['thread_id'] : '',
     'loops' => isset($result['loops']) ? (int) $result['loops'] : 0,
     'tool_calls' => isset($result['tool_calls']) && is_array($result['tool_calls']) ? $result['tool_calls'] : [],
