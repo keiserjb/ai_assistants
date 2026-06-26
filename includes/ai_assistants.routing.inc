@@ -255,10 +255,11 @@ function ai_assistants_model_route_plan(array $assistant, $message, array $threa
     return NULL;
   }
 
+  $raw_agent_ids = array_values(array_map('strval', $data['agent_ids']));
+
   $allowed = array_fill_keys(array_keys($available), TRUE);
   $selected = [];
-  foreach ($data['agent_ids'] as $agent_id) {
-    $agent_id = (string) $agent_id;
+  foreach ($raw_agent_ids as $agent_id) {
     if (isset($allowed[$agent_id]) && !in_array($agent_id, $selected, TRUE)) {
       $selected[] = $agent_id;
     }
@@ -267,6 +268,7 @@ function ai_assistants_model_route_plan(array $assistant, $message, array $threa
   return [
     'strategy' => !empty($data['strategy']) ? ai_assistants_normalize_route_strategy($data['strategy']) : '',
     'agent_ids' => $selected,
+    'raw_agent_ids' => $raw_agent_ids,
     'reason' => !empty($data['reason']) ? (string) $data['reason'] : '',
   ];
 }

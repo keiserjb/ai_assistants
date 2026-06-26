@@ -145,7 +145,9 @@ function ai_assistants_run_backing_agent($assistant_id, array $assistant, $agent
     'structured' => isset($result['structured']) ? $result['structured'] : NULL,
     'status' => !empty($result['status']) ? (string) $result['status'] : (empty($result['error']) ? 'ok' : 'error'),
     'token' => isset($result['token']) ? (string) $result['token'] : NULL,
-    'pending' => isset($result['pending_tool']) ? $result['pending_tool'] : NULL,
+    'pending' => isset($result['pending_tool'])
+      ? $result['pending_tool']
+      : (isset($result['pending_tools']) && is_array($result['pending_tools']) && !empty($result['pending_tools']) ? reset($result['pending_tools']) : NULL),
     'pending_tools' => (isset($result['pending_tools']) && is_array($result['pending_tools']) && !empty($result['pending_tools']))
       ? $result['pending_tools']
       : (isset($result['pending_tool']) && is_array($result['pending_tool']) ? [$result['pending_tool']] : []),
@@ -859,7 +861,9 @@ function ai_assistants_resume($assistant_id, $token, $approved = TRUE, array $op
     'structured' => isset($result['structured']) ? $result['structured'] : NULL,
     'status' => !empty($result['status']) ? (string) $result['status'] : (empty($result['error']) ? 'ok' : 'error'),
     'token' => isset($result['token']) ? (string) $result['token'] : NULL,
-    'pending' => isset($result['pending_tool']) ? $result['pending_tool'] : NULL,
+    'pending' => isset($result['pending_tool'])
+      ? $result['pending_tool']
+      : (isset($result['pending_tools']) && is_array($result['pending_tools']) && !empty($result['pending_tools']) ? reset($result['pending_tools']) : NULL),
     'pending_tools' => (isset($result['pending_tools']) && is_array($result['pending_tools']) && !empty($result['pending_tools']))
       ? $result['pending_tools']
       : (isset($result['pending_tool']) && is_array($result['pending_tool']) ? [$result['pending_tool']] : []),
