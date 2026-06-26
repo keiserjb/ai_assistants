@@ -188,7 +188,8 @@ function ai_assistants_get_thread($thread_id) {
 
   // Enforce the assistant's configured thread TTL (0 = never expire).
   $ttl = ai_assistants_thread_ttl(!empty($row['assistant_id']) ? (string) $row['assistant_id'] : '');
-  if ($ttl > 0 && !empty($row['updated']) && ((int) $row['updated'] + $ttl) < REQUEST_TIME) {
+  $updated = isset($row['updated']) ? (int) $row['updated'] : 0;
+  if ($ttl > 0 && ($updated + $ttl) < REQUEST_TIME) {
     return [];
   }
 
