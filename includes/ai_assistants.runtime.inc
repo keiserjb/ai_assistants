@@ -192,6 +192,10 @@ function ai_assistants_pending_tools_summary(array $result, $fallback = '') {
 function ai_assistants_format_multi_agent_answer(array $results) {
   $acting_indices = [];
   foreach ($results as $index => $result) {
+    if (!empty($result['status']) && $result['status'] === 'needs_approval') {
+      $acting_indices[$index] = TRUE;
+      continue;
+    }
     if (ai_assistants_result_did_actioning_work($result)) {
       $acting_indices[$index] = TRUE;
       continue;
@@ -221,7 +225,7 @@ function ai_assistants_format_multi_agent_answer(array $results) {
       continue;
     }
     $title = !empty($result['agent_label']) ? $result['agent_label'] : $result['agent_id'];
-    if ($is_pending && empty($result['answer'])) {
+    if ($is_pending) {
       $body = ai_assistants_pending_tools_summary($result, (string) t('Awaiting approval'));
     }
     else {
@@ -291,6 +295,7 @@ function ai_assistants_execute_agent_plan($assistant_id, array $assistant, array
     'status' => 'error',
     'token' => NULL,
     'pending' => NULL,
+    'pending_tools' => [],
     'loops' => 0,
     'tool_calls' => [],
     'error' => NULL,

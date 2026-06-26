@@ -129,7 +129,7 @@ function ai_assistants_schema() {
       ],
       'primary key' => ['thread_id'],
       'indexes' => [
-        'assistant_id' => ['assistant_id'],
+        'assistant_id_updated' => ['assistant_id', 'updated'],
         'uid' => ['uid'],
       ],
     ],

@@ -43,6 +43,19 @@ function ai_assistants_update_1001() {
 }
 
 /**
+ * Replace single-column assistant_id index with compound (assistant_id, updated).
+ */
+function ai_assistants_update_1002() {
+  if (db_index_exists('ai_assistants_thread', 'assistant_id')) {
+    db_drop_index('ai_assistants_thread', 'assistant_id');
+  }
+  if (!db_index_exists('ai_assistants_thread', 'assistant_id_updated')) {
+    db_add_index('ai_assistants_thread', 'assistant_id_updated', ['assistant_id', 'updated']);
+  }
+  return t('Replaced assistant_id index with compound assistant_id_updated index on ai_assistants_thread.');
+}
+
+/**
  * Implements hook_requirements().
  */
 function ai_assistants_requirements($phase) {
