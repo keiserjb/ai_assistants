@@ -13,12 +13,12 @@ It owns:
 
 Main files:
 
-- [ai_assistants.module](/home/justink/Documents/GitHub/amafoundation-backdrop/modules/contrib/ai_agents/modules/ai_assistants/ai_assistants.module)
-- [includes/ai_assistants.config.inc](/home/justink/Documents/GitHub/amafoundation-backdrop/modules/contrib/ai_agents/modules/ai_assistants/includes/ai_assistants.config.inc)
-- [includes/ai_assistants.admin.inc](/home/justink/Documents/GitHub/amafoundation-backdrop/modules/contrib/ai_agents/modules/ai_assistants/includes/ai_assistants.admin.inc)
-- [includes/ai_assistants.routing.inc](/home/justink/Documents/GitHub/amafoundation-backdrop/modules/contrib/ai_agents/modules/ai_assistants/includes/ai_assistants.routing.inc)
-- [includes/ai_assistants.runtime.inc](/home/justink/Documents/GitHub/amafoundation-backdrop/modules/contrib/ai_agents/modules/ai_assistants/includes/ai_assistants.runtime.inc)
-- [includes/ai_assistants.thread.inc](/home/justink/Documents/GitHub/amafoundation-backdrop/modules/contrib/ai_agents/modules/ai_assistants/includes/ai_assistants.thread.inc)
+- `ai_assistants.module`
+- `includes/ai_assistants.config.inc`
+- `includes/ai_assistants.admin.inc`
+- `includes/ai_assistants.routing.inc`
+- `includes/ai_assistants.runtime.inc`
+- `includes/ai_assistants.thread.inc`
 
 Main runtime entry points:
 
@@ -32,7 +32,7 @@ Admin path:
 
 Related doc:
 
-- [AI Assistants and AI Chatbot Code Walkthrough](/home/justink/Documents/GitHub/amafoundation-backdrop/docs/ai-assistants-ai-chatbot-walkthrough.md)
+- AI Assistants and AI Chatbot Code Walkthrough (`docs/ai-assistants-ai-chatbot-walkthrough.md`)
 ## Credits
 
 - Created for Backdrop CMS by [Justin Keiser](https://github.com/keiserjb).
