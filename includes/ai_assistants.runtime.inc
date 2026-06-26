@@ -146,7 +146,9 @@ function ai_assistants_run_backing_agent($assistant_id, array $assistant, $agent
     'status' => !empty($result['status']) ? (string) $result['status'] : (empty($result['error']) ? 'ok' : 'error'),
     'token' => isset($result['token']) ? (string) $result['token'] : NULL,
     'pending' => isset($result['pending_tool']) ? $result['pending_tool'] : NULL,
-    'pending_tools' => isset($result['pending_tools']) && is_array($result['pending_tools']) ? $result['pending_tools'] : [],
+    'pending_tools' => (isset($result['pending_tools']) && is_array($result['pending_tools']) && !empty($result['pending_tools']))
+      ? $result['pending_tools']
+      : (isset($result['pending_tool']) && is_array($result['pending_tool']) ? [$result['pending_tool']] : []),
     'loops' => isset($result['loops']) ? (int) $result['loops'] : 0,
     'tool_calls' => isset($result['tool_calls']) && is_array($result['tool_calls']) ? $result['tool_calls'] : [],
     'error' => isset($result['error']) ? $result['error'] : NULL,
@@ -207,16 +209,22 @@ function ai_assistants_format_multi_agent_answer(array $results) {
 
   $parts = [];
   foreach ($results as $index => $result) {
-    if (empty($result['answer']) && empty($result['error'])) {
+    $is_pending = !empty($result['status']) && $result['status'] === 'needs_approval';
+    if (empty($result['answer']) && empty($result['error']) && !$is_pending) {
       continue;
     }
-    if ($any_acted && empty($acting_indices[$index]) && empty($result['error'])) {
+    if ($any_acted && empty($acting_indices[$index]) && empty($result['error']) && !$is_pending) {
       // Suppress agents that did not act when at least one peer did. Their
       // prose is almost always off-topic ("I cannot do this directly...").
       continue;
     }
     $title = !empty($result['agent_label']) ? $result['agent_label'] : $result['agent_id'];
-    $body = !empty($result['answer']) ? $result['answer'] : $result['error'];
+    if ($is_pending && empty($result['answer'])) {
+      $body = ai_assistants_pending_tools_summary($result, (string) t('Awaiting approval'));
+    }
+    else {
+      $body = !empty($result['answer']) ? $result['answer'] : $result['error'];
+    }
     $parts[] = $title . "\n" . $body;
   }
   // If filtering left only one acting agent, drop the agent label header for
@@ -474,7 +482,7 @@ function ai_assistants_build_workflow_node_message(array $assistant, $message, $
 function ai_assistants_workflow_results_payload(array $results) {
   $payload = [];
   foreach ($results as $result) {
-    $payload[] = [
+    $step = [
       'agent_id' => !empty($result['agent_id']) ? (string) $result['agent_id'] : '',
       'agent_label' => !empty($result['agent_label']) ? (string) $result['agent_label'] : '',
       'status' => !empty($result['status']) ? (string) $result['status'] : 'ok',
@@ -482,6 +490,11 @@ function ai_assistants_workflow_results_payload(array $results) {
       'error' => isset($result['error']) ? $result['error'] : NULL,
       'tool_calls' => !empty($result['tool_calls']) && is_array($result['tool_calls']) ? $result['tool_calls'] : [],
     ];
+    if (!empty($result['status']) && $result['status'] === 'needs_approval') {
+      $step['pending_tools'] = !empty($result['pending_tools']) && is_array($result['pending_tools']) ? $result['pending_tools'] : [];
+      $step['pending_summary'] = ai_assistants_pending_tools_summary($result, '');
+    }
+    $payload[] = $step;
   }
   return [
     'outputs' => ai_assistants_orchestration_collect_outputs($results),
@@ -847,7 +860,9 @@ function ai_assistants_resume($assistant_id, $token, $approved = TRUE, array $op
     'status' => !empty($result['status']) ? (string) $result['status'] : (empty($result['error']) ? 'ok' : 'error'),
     'token' => isset($result['token']) ? (string) $result['token'] : NULL,
     'pending' => isset($result['pending_tool']) ? $result['pending_tool'] : NULL,
-    'pending_tools' => isset($result['pending_tools']) && is_array($result['pending_tools']) ? $result['pending_tools'] : [],
+    'pending_tools' => (isset($result['pending_tools']) && is_array($result['pending_tools']) && !empty($result['pending_tools']))
+      ? $result['pending_tools']
+      : (isset($result['pending_tool']) && is_array($result['pending_tool']) ? [$result['pending_tool']] : []),
     'thread_id' => !empty($options['thread_id']) ? (string) $options['thread_id'] : '',
     'loops' => isset($result['loops']) ? (int) $result['loops'] : 0,
     'tool_calls' => isset($result['tool_calls']) && is_array($result['tool_calls']) ? $result['tool_calls'] : [],

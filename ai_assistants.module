@@ -75,9 +75,6 @@ function ai_assistants_menu() {
  */
 function ai_assistants_cron() {
   foreach (ai_assistants_get_assistants() as $assistant_id => $assistant) {
-    if (($assistant['thread_storage'] ?? 'session') !== 'database') {
-      continue;
-    }
     $ttl = !empty($assistant['thread_ttl']) ? max(0, (int) $assistant['thread_ttl']) : 0;
     if ($ttl <= 0) {
       continue;
